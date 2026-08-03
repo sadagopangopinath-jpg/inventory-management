@@ -64,13 +64,13 @@
             <div class="tasks-divider"></div>
 
             <!-- Tasks List -->
-            <div v-if="sortedTasks.length === 0" class="no-tasks">
+            <div v-if="enrichedTasks.length === 0" class="no-tasks">
               {{ t('tasks.noTasks') }}
             </div>
 
             <div v-else class="tasks-list">
               <div
-                v-for="task in sortedTasks"
+                v-for="task in enrichedTasks"
                 :key="task.id"
                 class="task-item"
                 :class="[`priority-${task.priority}`, { completed: task.status === 'completed' }]"
@@ -99,10 +99,10 @@
                       <rect x="2" y="3" width="10" height="9" rx="1" stroke="currentColor" stroke-width="1.2"/>
                       <path d="M4.5 1.5V4.5M9.5 1.5V4.5M2 6H12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
                     </svg>
-                    {{ formatDueDate(task.dueDate) }}
+                    {{ task.dueLabel }}
                   </div>
-                  <span class="status-badge" :class="getStatusClass(task.dueDate, task.status)">
-                    {{ getStatusText(task.dueDate, task.status) }}
+                  <span class="status-badge" :class="task.statusClass">
+                    {{ task.statusText }}
                   </span>
                 </div>
               </div>
@@ -167,58 +167,76 @@ export default {
       }
     }
 
-    const formatDueDate = (dateString) => {
-      const date = new Date(dateString)
+    // Single computed replaces formatDueDate/getStatusClass/getStatusText, which
+    // were each called per task per render (with getStatusText re-invoking
+    // getStatusClass, doubling the work) and rebuilt Date objects/diff-day math
+    // every time. Derived once here per task, with a validity guard on the
+    // due date before any date math runs.
+    const enrichedTasks = computed(() => {
+      const isJapanese = currentLocale.value === 'ja'
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const dueDate = new Date(date)
-      dueDate.setHours(0, 0, 0, 0)
 
-      const diffTime = dueDate - today
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      return sortedTasks.value.map(task => {
+        const dueDate = new Date(task.dueDate)
+        const isValidDueDate = !isNaN(dueDate.getTime())
 
-      const isJapanese = currentLocale.value === 'ja'
+        let dueLabel = 'N/A'
+        let diffDays = null
 
-      if (diffDays === 0) return isJapanese ? '今日' : 'today'
-      if (diffDays === 1) return isJapanese ? '明日' : 'tomorrow'
-      if (diffDays === -1) return isJapanese ? '昨日' : 'yesterday'
-      if (diffDays < 0) return isJapanese ? `${Math.abs(diffDays)}日前` : `${Math.abs(diffDays)} days ago`
-      if (diffDays < 7) return isJapanese ? `${diffDays}日後` : `in ${diffDays} days`
+        if (isValidDueDate) {
+          const normalizedDue = new Date(dueDate)
+          normalizedDue.setHours(0, 0, 0, 0)
+          const diffTime = normalizedDue - today
+          diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-      const locale = isJapanese ? 'ja-JP' : 'en-US'
-      return date.toLocaleDateString(locale, {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+          if (diffDays === 0) {
+            dueLabel = isJapanese ? '今日' : 'today'
+          } else if (diffDays === 1) {
+            dueLabel = isJapanese ? '明日' : 'tomorrow'
+          } else if (diffDays === -1) {
+            dueLabel = isJapanese ? '昨日' : 'yesterday'
+          } else if (diffDays < 0) {
+            dueLabel = isJapanese ? `${Math.abs(diffDays)}日前` : `${Math.abs(diffDays)} days ago`
+          } else if (diffDays < 7) {
+            dueLabel = isJapanese ? `${diffDays}日後` : `in ${diffDays} days`
+          } else {
+            const locale = isJapanese ? 'ja-JP' : 'en-US'
+            dueLabel = dueDate.toLocaleDateString(locale, {
+              month: 'short',
+              day: 'numeric',
+              year: dueDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+            })
+          }
+        }
+
+        let statusClass = 'upcoming'
+        if (task.status === 'completed') {
+          statusClass = 'completed'
+        } else if (isValidDueDate) {
+          if (diffDays < 0) statusClass = 'overdue'
+          else if (diffDays <= 1) statusClass = 'urgent'
+        }
+
+        let statusText
+        if (task.status === 'completed') {
+          statusText = isJapanese ? '完了' : 'Completed'
+        } else if (statusClass === 'overdue') {
+          statusText = isJapanese ? '期限超過' : 'Overdue'
+        } else if (statusClass === 'urgent') {
+          statusText = isJapanese ? 'もうすぐ期限' : 'Due Soon'
+        } else {
+          statusText = isJapanese ? '予定' : 'Upcoming'
+        }
+
+        return {
+          ...task,
+          dueLabel,
+          statusClass,
+          statusText
+        }
       })
-    }
-
-    const getStatusClass = (dueDate, status) => {
-      if (status === 'completed') return 'completed'
-
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const due = new Date(dueDate)
-      due.setHours(0, 0, 0, 0)
-
-      const diffTime = due - today
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (diffDays < 0) return 'overdue'
-      if (diffDays <= 1) return 'urgent'
-      return 'upcoming'
-    }
-
-    const getStatusText = (dueDate, status) => {
-      const isJapanese = currentLocale.value === 'ja'
-
-      if (status === 'completed') return isJapanese ? '完了' : 'Completed'
-
-      const statusClass = getStatusClass(dueDate, status)
-      if (statusClass === 'overdue') return isJapanese ? '期限超過' : 'Overdue'
-      if (statusClass === 'urgent') return isJapanese ? 'もうすぐ期限' : 'Due Soon'
-      return isJapanese ? '予定' : 'Upcoming'
-    }
+    })
 
     const translatePriority = (priority) => {
       const priorityMap = {
@@ -233,11 +251,9 @@ export default {
       t,
       newTask,
       sortedTasks,
+      enrichedTasks,
       close,
       handleAddTask,
-      formatDueDate,
-      getStatusClass,
-      getStatusText,
       translatePriority
     }
   }

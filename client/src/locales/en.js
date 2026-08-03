@@ -6,6 +6,7 @@ export default {
     orders: 'Orders',
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
+    restocking: 'Restocking',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
   },
@@ -125,8 +126,11 @@ export default {
       totalValue: 'Total Value',
       status: 'Status',
       expectedDelivery: 'Expected Delivery',
-      actualDelivery: 'Actual Delivery'
-    }
+      actualDelivery: 'Actual Delivery',
+      leadTime: 'Lead Time'
+    },
+    submittedOrders: 'Submitted Orders',
+    noSubmittedOrders: 'No restocking orders submitted yet'
   },
 
   // Finance/Spending
@@ -185,6 +189,32 @@ export default {
       change: 'Change',
       trend: 'Trend',
       period: 'Period'
+    }
+  },
+
+  // Restocking
+  restocking: {
+    title: 'Restocking',
+    description: 'Set a budget and restock items recommended from the demand forecast',
+    budgetLabel: 'Available Budget',
+    recommendedItems: 'Recommended Items',
+    totalCost: 'Allocated',
+    remainingBudget: 'Remaining',
+    placeOrder: 'Place Order',
+    placingOrder: 'Placing Order...',
+    orderSuccess: 'Order {orderNumber} submitted successfully',
+    orderError: 'Failed to submit order',
+    noRecommendations: 'Increase your budget to get restock recommendations',
+    partial: 'partial',
+    table: {
+      sku: 'SKU',
+      itemName: 'Item Name',
+      trend: 'Trend',
+      recommendedQty: 'Recommended Qty',
+      quantity: 'Allocated Qty',
+      unitCost: 'Unit Cost',
+      lineCost: 'Line Cost',
+      leadTime: 'Lead Time'
     }
   },
 
@@ -323,6 +353,7 @@ export default {
     search: 'Search',
     filter: 'Filter',
     export: 'Export',
-    items: 'items'
+    items: 'items',
+    days: 'days'
   }
 }

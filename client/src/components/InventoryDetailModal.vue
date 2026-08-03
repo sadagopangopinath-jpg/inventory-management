@@ -14,7 +14,7 @@
 
           <div class="modal-body">
             <div class="item-header">
-              <div class="item-icon" :class="getStockIconClass()">
+              <div class="item-icon" :class="stockIconClass">
                 <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
                   <rect x="8" y="12" width="32" height="28" rx="2" stroke="currentColor" stroke-width="2.5"/>
                   <path d="M16 8V16M32 8V16M8 20H40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -25,8 +25,8 @@
                 <h4 class="item-name">{{ translateProductName(inventoryItem.name) }}</h4>
                 <div class="item-sku">SKU: {{ inventoryItem.sku }}</div>
               </div>
-              <span class="stock-badge" :class="getStockStatusClass()">
-                {{ getStockStatus() }}
+              <span class="stock-badge" :class="stockStatusClass">
+                {{ stockStatusLabel }}
               </span>
             </div>
 
@@ -35,7 +35,7 @@
                 <div class="summary-label">Quantity on Hand</div>
                 <div class="summary-value">{{ inventoryItem.quantity_on_hand }} units</div>
               </div>
-              <div class="summary-card" :class="getSummaryCardClass()">
+              <div class="summary-card" :class="summaryCardClass">
                 <div class="summary-label">Stock Level</div>
                 <div class="summary-value">{{ stockPercentage }}%</div>
                 <div class="summary-subtitle">vs. reorder point</div>
@@ -61,7 +61,7 @@
               <div class="info-item">
                 <div class="info-label">Units Remaining</div>
                 <div class="info-value">
-                  <span :style="{ color: inventoryItem.quantity_on_hand <= inventoryItem.reorder_point ? '#ef4444' : '#10b981' }">
+                  <span :class="unitsRemainingClass">
                     {{ inventoryItem.quantity_on_hand - inventoryItem.reorder_point }} units
                   </span>
                 </div>
@@ -87,8 +87,8 @@
               <div class="info-item">
                 <div class="info-label">Status</div>
                 <div class="info-value">
-                  <span :class="['badge', getStockStatusClass()]">
-                    {{ getStockStatus() }}
+                  <span :class="['badge', stockStatusClass]">
+                    {{ stockStatusLabel }}
                   </span>
                 </div>
               </div>
@@ -141,37 +141,47 @@ const close = () => {
   emit('close')
 }
 
-const getStockStatus = () => {
-  if (!props.inventoryItem) return 'Unknown'
+// Single source of truth for stock status, computed once per render instead of
+// being recalculated by every class-mapping helper below.
+const stockStatus = computed(() => {
+  if (!props.inventoryItem) return 'unknown'
   if (props.inventoryItem.quantity_on_hand <= props.inventoryItem.reorder_point) {
-    return 'Low Stock'
+    return 'low'
   } else if (props.inventoryItem.quantity_on_hand <= props.inventoryItem.reorder_point * 1.5) {
-    return 'Adequate'
+    return 'adequate'
   } else {
-    return 'In Stock'
+    return 'in-stock'
   }
-}
+})
 
-const getStockStatusClass = () => {
-  const status = getStockStatus()
-  if (status === 'Low Stock') return 'danger'
-  if (status === 'Adequate') return 'warning'
+const stockStatusLabel = computed(() => {
+  const labels = { low: 'Low Stock', adequate: 'Adequate', 'in-stock': 'In Stock', unknown: 'Unknown' }
+  return labels[stockStatus.value]
+})
+
+const stockStatusClass = computed(() => {
+  if (stockStatus.value === 'low') return 'danger'
+  if (stockStatus.value === 'adequate') return 'warning'
   return 'success'
-}
+})
 
-const getStockIconClass = () => {
-  const status = getStockStatus()
-  if (status === 'Low Stock') return 'danger-icon'
-  if (status === 'Adequate') return 'warning-icon'
+const stockIconClass = computed(() => {
+  if (stockStatus.value === 'low') return 'danger-icon'
+  if (stockStatus.value === 'adequate') return 'warning-icon'
   return 'success-icon'
-}
+})
 
-const getSummaryCardClass = () => {
-  const status = getStockStatus()
-  if (status === 'Low Stock') return 'danger-card'
-  if (status === 'Adequate') return 'warning-card'
+const summaryCardClass = computed(() => {
+  if (stockStatus.value === 'low') return 'danger-card'
+  if (stockStatus.value === 'adequate') return 'warning-card'
   return 'success-card'
-}
+})
+
+// Units-remaining text color reuses the same low-stock check already
+// expressed by stockStatus, instead of duplicating it as an inline style.
+const unitsRemainingClass = computed(() => {
+  return stockStatus.value === 'low' ? 'text-danger' : 'text-success'
+})
 </script>
 
 <style scoped>
@@ -399,6 +409,14 @@ const getSummaryCardClass = () => {
   font-size: 1.125rem;
   color: #2563eb;
   font-weight: 700;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.text-success {
+  color: #10b981;
 }
 
 .modal-footer {

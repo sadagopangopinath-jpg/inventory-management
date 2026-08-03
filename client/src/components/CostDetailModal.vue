@@ -34,7 +34,7 @@
                     <div class="cost-amount">{{ currencySymbol }}{{ costData.procurement.toLocaleString() }}</div>
                   </div>
                 </div>
-                <div class="cost-percentage">{{ getProcurementPercentage() }}% of total</div>
+                <div class="cost-percentage">{{ costPercentages.procurement }}% of total</div>
               </div>
 
               <div class="cost-item operational">
@@ -50,7 +50,7 @@
                     <div class="cost-amount">{{ currencySymbol }}{{ costData.operational.toLocaleString() }}</div>
                   </div>
                 </div>
-                <div class="cost-percentage">{{ getOperationalPercentage() }}% of total</div>
+                <div class="cost-percentage">{{ costPercentages.operational }}% of total</div>
               </div>
 
               <div class="cost-item labor">
@@ -66,7 +66,7 @@
                     <div class="cost-amount">{{ currencySymbol }}{{ costData.labor.toLocaleString() }}</div>
                   </div>
                 </div>
-                <div class="cost-percentage">{{ getLaborPercentage() }}% of total</div>
+                <div class="cost-percentage">{{ costPercentages.labor }}% of total</div>
               </div>
 
               <div class="cost-item overhead">
@@ -81,7 +81,7 @@
                     <div class="cost-amount">{{ currencySymbol }}{{ costData.overhead.toLocaleString() }}</div>
                   </div>
                 </div>
-                <div class="cost-percentage">{{ getOverheadPercentage() }}% of total</div>
+                <div class="cost-percentage">{{ costPercentages.overhead }}% of total</div>
               </div>
             </div>
           </div>
@@ -124,25 +124,19 @@ const totalCosts = computed(() => {
          props.costData.labor + props.costData.overhead
 })
 
-const getProcurementPercentage = () => {
-  if (!props.costData || totalCosts.value === 0) return 0
-  return ((props.costData.procurement / totalCosts.value) * 100).toFixed(1)
-}
-
-const getOperationalPercentage = () => {
-  if (!props.costData || totalCosts.value === 0) return 0
-  return ((props.costData.operational / totalCosts.value) * 100).toFixed(1)
-}
-
-const getLaborPercentage = () => {
-  if (!props.costData || totalCosts.value === 0) return 0
-  return ((props.costData.labor / totalCosts.value) * 100).toFixed(1)
-}
-
-const getOverheadPercentage = () => {
-  if (!props.costData || totalCosts.value === 0) return 0
-  return ((props.costData.overhead / totalCosts.value) * 100).toFixed(1)
-}
+// Single computed replaces four near-identical percentage methods so the
+// percentage breakdown is derived once per render instead of once per field.
+const costPercentages = computed(() => {
+  if (!props.costData || totalCosts.value === 0) {
+    return { procurement: 0, operational: 0, labor: 0, overhead: 0 }
+  }
+  return {
+    procurement: ((props.costData.procurement / totalCosts.value) * 100).toFixed(1),
+    operational: ((props.costData.operational / totalCosts.value) * 100).toFixed(1),
+    labor: ((props.costData.labor / totalCosts.value) * 100).toFixed(1),
+    overhead: ((props.costData.overhead / totalCosts.value) * 100).toFixed(1)
+  }
+})
 
 const close = () => {
   emit('close')

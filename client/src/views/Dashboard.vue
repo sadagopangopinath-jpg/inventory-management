@@ -374,7 +374,10 @@ export default {
       const deliveredOrders = allOrders.value.filter(o => o.status.toLowerCase() === 'delivered')
       const onTimeDeliveries = deliveredOrders.filter(o => {
         if (o.actual_delivery && o.expected_delivery) {
-          return new Date(o.actual_delivery) <= new Date(o.expected_delivery)
+          const actualDate = new Date(o.actual_delivery)
+          const expectedDate = new Date(o.expected_delivery)
+          if (isNaN(actualDate.getTime()) || isNaN(expectedDate.getTime())) return false
+          return actualDate <= expectedDate
         }
         return false
       }).length
@@ -387,6 +390,7 @@ export default {
         if (o.order_date && o.actual_delivery) {
           const orderDate = new Date(o.order_date)
           const deliveryDate = new Date(o.actual_delivery)
+          if (isNaN(orderDate.getTime()) || isNaN(deliveryDate.getTime())) return
           const days = Math.round((deliveryDate - orderDate) / (1000 * 60 * 60 * 24))
           totalDays += days
           countWithDates++
@@ -490,6 +494,10 @@ export default {
       // Calculate top products from filtered order data
       const productMap = {}
 
+      // Build a lookup Map once (O(inventory)) instead of calling .find() per order item,
+      // which would be O(orders x items x inventory)
+      const inventoryBySku = new Map(inventoryItems.value.map(i => [i.sku, i]))
+
       // allOrders is already filtered by API based on: month, warehouse, category, status
       allOrders.value.forEach(order => {
         if (order.items) {
@@ -498,7 +506,7 @@ export default {
 
             // Find matching inventory item to get full product details
             // Note: inventoryItems is also filtered by API based on: warehouse, category
-            const invItem = inventoryItems.value.find(i => i.sku === sku)
+            const invItem = inventoryBySku.get(sku)
 
             // Skip products that don't match current inventory filters
             // (e.g., if filtering by warehouse A, don't show products from warehouse B)

@@ -86,7 +86,9 @@ const close = () => {
 }
 
 const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
   const date = new Date(dateString)
+  if (isNaN(date.getTime())) return 'N/A'
   const locale = currentLocale.value === 'ja' ? 'ja-JP' : 'en-US'
   return date.toLocaleDateString(locale, {
     year: 'numeric',

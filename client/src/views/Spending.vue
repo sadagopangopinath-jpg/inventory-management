@@ -232,7 +232,9 @@ export default {
       }
       // Filter transactions by selected month
       return allTransactions.value.filter(t => {
-        const transactionMonth = new Date(t.date).toISOString().slice(0, 7)
+        const transactionDate = new Date(t.date)
+        if (isNaN(transactionDate.getTime())) return false
+        const transactionMonth = transactionDate.toISOString().slice(0, 7)
         return transactionMonth === selectedPeriod.value
       })
     })
@@ -270,7 +272,9 @@ export default {
 
       // Filter orders by selected month
       return allOrders.value.filter(order => {
-        const orderMonth = new Date(order.order_date).toISOString().slice(0, 7)
+        const orderDate = new Date(order.order_date)
+        if (isNaN(orderDate.getTime())) return false
+        const orderMonth = orderDate.toISOString().slice(0, 7)
         return orderMonth === selectedPeriod.value
       })
     })
@@ -393,15 +397,9 @@ export default {
       return (value / maxValue) * 100
     }
 
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      })
-    }
-
     const formatDateShort = (dateString) => {
       const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'N/A'
       const month = (date.getMonth() + 1).toString().padStart(2, '0')
       const day = date.getDate().toString().padStart(2, '0')
       const year = date.getFullYear().toString().slice(-2)
@@ -477,7 +475,6 @@ export default {
       currencySymbol,
       getBarHeight,
       getRevenueBarHeight,
-      formatDate,
       formatDateShort,
       translateMonth,
       translateCategory,

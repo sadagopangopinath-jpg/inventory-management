@@ -88,9 +88,11 @@ const createCurrentUser = () => {
 
 const currentUser = createCurrentUser()
 
-export function useAuth() {
-  const isAuthenticated = ref(true)
+// Hoisted to module scope (alongside currentUser) so every component calling
+// useAuth() shares the same auth state instead of getting an independent ref.
+const isAuthenticated = ref(true)
 
+export function useAuth() {
   const logout = () => {
     // In a real app, this would clear tokens, etc.
     console.log('Logout clicked - would redirect to login')
